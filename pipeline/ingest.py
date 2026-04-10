@@ -25,6 +25,16 @@ Spark configuration tip:
   Configure Delta Lake using the builder pattern shown in the base image docs.
 """
 
+from pipeline.config_helper import PipelineConfig
+from pipeline.engine import duckdb_session_manager
+from pipeline.ingest_accounts import ingest_accounts
+from pipeline.ingest_customers import ingest_customers
+from pipeline.ingest_transactions import ingest_transactions
+from pipeline.timing_helper import Timer
+
+config = PipelineConfig()
+ducks = duckdb_session_manager.DuckDBSessionManager()
+
 
 def run_ingestion():
     # TODO: Implement Bronze layer ingestion.
@@ -35,4 +45,19 @@ def run_ingestion():
     #   3. Read accounts.csv → append ingestion_timestamp → write to bronze/accounts/.
     #   4. Read transactions.jsonl → append ingestion_timestamp → write to bronze/transactions/.
     #   5. Read customers.csv → append ingestion_timestamp → write to bronze/customers/.
-    pass
+
+    account_csv_path = config.get("input.accounts_path")
+    account_output_path = config.get("output.bronze_path") + "/accounts/"
+
+    customer_csv_path = config.get("input.customers_path")
+    customer_output_path = config.get("output.bronze_path") + "/customers/"
+
+    transaction_jsonl_path = config.get("input.transactions_path")
+    transaction_output_path = config.get("output.bronze_path") + "/transactions/"
+
+    with Timer("Ingest Accounts Timer"):
+        ingest_accounts(account_csv_path, account_output_path, 1000)
+    with Timer("Ingest Customers Timer"):
+        ingest_customers(customer_csv_path, customer_output_path, 1000)
+    with Timer("Ingest Transactions Timer"):
+        ingest_transactions(transaction_jsonl_path, transaction_output_path, 10000)

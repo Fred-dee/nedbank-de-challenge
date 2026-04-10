@@ -13,12 +13,18 @@ Do not add interactive prompts, argument parsing that blocks execution,
 or any code that reads from stdin. The container has no TTY attached.
 """
 
+from pipeline import bootstrap
+from pipeline.bootstrap import setup_performance_logging, debug_container_permissions
 from pipeline.ingest import run_ingestion
-from pipeline.transform import run_transformation
 from pipeline.provision import run_provisioning
-
+from pipeline.timing_helper import Timer
+from pipeline.transform import run_transformation
 
 if __name__ == "__main__":
-    run_ingestion()
-    run_transformation()
-    run_provisioning()
+    debug_container_permissions()
+    setup_performance_logging()
+    with Timer("Pipeline run time"):
+        config = bootstrap.initialize_output_directories()
+        run_ingestion()
+        run_transformation()
+        run_provisioning()

@@ -12,6 +12,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY pipeline/ pipeline/
 COPY config/ config/
 
+RUN groupadd -g 1000 pipeline && \
+    useradd -m -u 1000 -g 1000 -s /bin/bash pipeline
+
+USER pipeline:pipeline
+
 # Entry point — must run the complete pipeline end-to-end without interactive input.
 # The scoring system uses this CMD directly; do not require TTY or stdin.
 CMD ["python", "-m", "pipeline.run_all"]
+# Force ownership of the mount to root before running the pipeline
+#CMD ["sh", "-c", "chown -R root:root /data/output && chmod -R 777 /data/output 2?dev/null && python -m pipeline.run_all"]
