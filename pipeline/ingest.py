@@ -25,11 +25,11 @@ Spark configuration tip:
   Configure Delta Lake using the builder pattern shown in the base image docs.
 """
 
+from pipeline.bronze.ingest_accounts import ingest_accounts
+from pipeline.bronze.ingest_customers import ingest_customers
+from pipeline.bronze.ingest_transactions import ingest_transactions
 from pipeline.config_helper import PipelineConfig
 from pipeline.engine import duckdb_session_manager
-from pipeline.ingest_accounts import ingest_accounts
-from pipeline.ingest_customers import ingest_customers
-from pipeline.ingest_transactions import ingest_transactions
 from pipeline.timing_helper import Timer
 
 config = PipelineConfig()

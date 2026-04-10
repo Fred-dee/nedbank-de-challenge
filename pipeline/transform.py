@@ -1,43 +1,88 @@
-"""
-Silver layer: Clean and conform Bronze tables into validated Silver Delta tables.
+import logging
 
-Input paths (Bronze layer output — read these, do not modify):
-  /data/output/bronze/accounts/
-  /data/output/bronze/transactions/
-  /data/output/bronze/customers/
+import pyarrow as pa
+from deltalake import write_deltalake, DeltaTable
 
-Output paths (your pipeline must create these directories):
-  /data/output/silver/accounts/
-  /data/output/silver/transactions/
-  /data/output/silver/customers/
+from pipeline.config_helper import PipelineConfig
+from pipeline.silver.transform_accounts import transform_accounts
+from pipeline.silver.transform_customers import transform_customers
+from pipeline.silver.transform_transactions import transform_transactions
 
-Requirements:
-  - Deduplicate records within each table on natural keys
-    (account_id, transaction_id, customer_id respectively).
-  - Standardise data types (e.g. parse date strings to DATE, cast amounts to
-    DECIMAL(18,2), normalise currency variants to "ZAR").
-  - Apply DQ flagging to transactions:
-      - Set dq_flag = NULL for clean records.
-      - Set dq_flag to the appropriate issue code for flagged records.
-      - Valid codes: ORPHANED_ACCOUNT, DUPLICATE_DEDUPED, TYPE_MISMATCH,
-        DATE_FORMAT, CURRENCY_VARIANT, NULL_REQUIRED.
-  - At Stage 2, load DQ rules from config/dq_rules.yaml rather than hardcoding.
-  - Write each table as a Delta Parquet table.
-  - Do not hardcode file paths — read from config/pipeline_config.yaml.
+logger = logging.getLogger(__name__)
 
-See output_schema_spec.md §8 for the full list of DQ flag values and their
-definitions.
-"""
+
+def _write_to_silver(df, path):
+    """Ensures consistent Silver formatting and strict typing."""
+    table = pa.Table.from_pandas(df, preserve_index=False)
+
+    if "dq_flag" in table.column_names:
+        idx = table.schema.get_field_index("dq_flag")
+        table = table.cast(table.schema.set(idx, pa.field("dq_flag", pa.string())))
+
+    write_deltalake(
+        path,
+        table,
+        mode="overwrite",
+        configuration={"delta.minReaderVersion": "1", "delta.minWriterVersion": "2"}
+    )
+    logger.info(f"Wrote Silver table: {path}")
+
+
+def _process_entity(name, key, config):
+    """Refined deduplication engine focusing on natural key stability."""
+    bronze_path = f"{config.get('output.bronze_path')}/{name}"
+    silver_path = f"{config.get('output.silver_path')}/{name}"
+
+    # 1. Load from Bronze
+    df = DeltaTable(bronze_path).to_pyarrow_table().to_pandas()
+    initial_count = len(df)
+
+    # 2. Natural Key Hardening
+    # Ensure the key column exists and clean it for a robust match
+    if key in df.columns:
+        # Convert to string and strip whitespace to prevent "hidden" duplicates
+        df[key] = df[key].astype(str).str.strip()
+
+        # 3. Deduplication: Stable Sort & Drop
+        # We sort by ingestion_timestamp (Descending).
+        # If timestamps are identical, the original order is preserved.
+        df = df.sort_values(by=["ingestion_timestamp"], ascending=False, kind="stable")
+
+        # Keep the 'first' (which is the most recent due to the sort)
+        df = df.drop_duplicates(subset=[key], keep="first")
+
+        deduped_count = len(df)
+        dropped = initial_count - deduped_count
+        logger.info(f"[{name.upper()}] Natural Key: {key} | Initial: {initial_count} | Dropped: {dropped}")
+    else:
+        logger.warning(f"[{name.upper()}] Key '{key}' not found in columns! Skipping dedupe.")
+
+    # 4. DISPATCHER: Apply entity-specific logic
+    if name == "accounts":
+        df = transform_accounts(df)
+    elif name == "customers":
+        df = transform_customers(df)
+    elif name == "transactions":
+        df = transform_transactions(df)
+
+    # 5. Write to Silver
+    _write_to_silver(df, silver_path)
 
 
 def run_transformation():
-    # TODO: Implement Silver layer transformation.
-    #
-    # Suggested steps:
-    #   1. Load pipeline_config.yaml to get input/output paths.
-    #   2. Initialise (or reuse) SparkSession.
-    #   3. Read each Bronze table.
-    #   4. Deduplicate, type-cast, and standardise each table.
-    #   5. Apply DQ flagging to the transactions table.
-    #   6. Write cleaned tables to silver/.
-    pass
+    """Entry point: Dispatches entities to their specific logic handlers."""
+    config = PipelineConfig()
+
+    entities = {
+        "accounts": "account_id",
+        "customers": "customer_id",
+        "transactions": "transaction_id"
+    }
+
+    for entity_name, key_col in entities.items():
+        try:
+            logger.info(f"--- Starting Silver Transformation: {entity_name} ---")
+            _process_entity(entity_name, key_col, config)
+        except Exception as e:
+            logger.error(f"Critical failure transforming {entity_name}: {e}")
+            raise

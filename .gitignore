@@ -37,3 +37,4 @@ stream/*.jsonl
 data/input/
 infrastructure/
 docs/
+AGENTS.MD

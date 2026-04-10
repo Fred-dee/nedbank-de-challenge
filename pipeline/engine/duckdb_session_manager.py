@@ -1,5 +1,6 @@
 import duckdb
 
+
 class DuckDBSessionManager:
 
     def __init__(self, db_path: str = ":memory:"):
@@ -16,3 +17,6 @@ class DuckDBSessionManager:
         else:
             print("connection exists")
         return self.connection.execute(query)
+
+    def get_connection(self):
+        return self.connection

@@ -25,6 +25,9 @@ if __name__ == "__main__":
     setup_performance_logging()
     with Timer("Pipeline run time"):
         config = bootstrap.initialize_output_directories()
-        run_ingestion()
-        run_transformation()
-        run_provisioning()
+        with Timer("Ingest time"):
+            run_ingestion()
+        with Timer("Transform time"):
+            run_transformation()
+        with Timer("Provision time"):
+            run_provisioning()
