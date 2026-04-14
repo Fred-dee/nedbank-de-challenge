@@ -28,15 +28,12 @@ Spark configuration tip:
 from pipeline.bronze.ingest_accounts import ingest_accounts
 from pipeline.bronze.ingest_customers import ingest_customers
 from pipeline.bronze.ingest_transactions import ingest_transactions
-from pipeline.config_helper import PipelineConfig
-from pipeline.engine import duckdb_session_manager
+from pipeline.extended_config import ExtendedConfig
+from pipeline.pipeline_config import PipelineConfig
 from pipeline.timing_helper import Timer
 
-config = PipelineConfig()
-ducks = duckdb_session_manager.DuckDBSessionManager()
 
-
-def run_ingestion():
+def run_ingestion(pipeline_config: PipelineConfig, extended_config: ExtendedConfig):
     # TODO: Implement Bronze layer ingestion.
     #
     # Suggested steps:
@@ -46,18 +43,18 @@ def run_ingestion():
     #   4. Read transactions.jsonl → append ingestion_timestamp → write to bronze/transactions/.
     #   5. Read customers.csv → append ingestion_timestamp → write to bronze/customers/.
 
-    account_csv_path = config.get("input.accounts_path")
-    account_output_path = config.get("output.bronze_path") + "/accounts/"
+    account_csv_path = pipeline_config.get("input.accounts_path")
+    account_output_path = pipeline_config.get("output.bronze_path") + "/accounts/"
 
-    customer_csv_path = config.get("input.customers_path")
-    customer_output_path = config.get("output.bronze_path") + "/customers/"
+    customer_csv_path = pipeline_config.get("input.customers_path")
+    customer_output_path = pipeline_config.get("output.bronze_path") + "/customers/"
 
-    transaction_jsonl_path = config.get("input.transactions_path")
-    transaction_output_path = config.get("output.bronze_path") + "/transactions/"
+    transaction_jsonl_path = pipeline_config.get("input.transactions_path")
+    transaction_output_path = pipeline_config.get("output.bronze_path") + "/transactions/"
 
     with Timer("Ingest Accounts Timer"):
-        ingest_accounts(account_csv_path, account_output_path, 1000)
+        ingest_accounts(account_csv_path, account_output_path, extended_config.get("batch_size.bronze.accounts"))
     with Timer("Ingest Customers Timer"):
-        ingest_customers(customer_csv_path, customer_output_path, 1000)
+        ingest_customers(customer_csv_path, customer_output_path, extended_config.get("batch_size.bronze.customers"))
     with Timer("Ingest Transactions Timer"):
-        ingest_transactions(transaction_jsonl_path, transaction_output_path, 10000)
+        ingest_transactions(transaction_jsonl_path, transaction_output_path, extended_config.get("batch_size.bronze.transactions"))

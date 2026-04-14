@@ -3,7 +3,8 @@ import logging
 import pyarrow as pa
 from deltalake import write_deltalake, DeltaTable
 
-from pipeline.config_helper import PipelineConfig
+from pipeline.extended_config import ExtendedConfig
+from pipeline.pipeline_config import PipelineConfig
 from pipeline.silver.transform_accounts import transform_accounts
 from pipeline.silver.transform_customers import transform_customers
 from pipeline.silver.transform_transactions import transform_transactions
@@ -69,9 +70,8 @@ def _process_entity(name, key, config):
     _write_to_silver(df, silver_path)
 
 
-def run_transformation():
+def run_transformation(pipeline_config: PipelineConfig, extended_config: ExtendedConfig):
     """Entry point: Dispatches entities to their specific logic handlers."""
-    config = PipelineConfig()
 
     entities = {
         "accounts": "account_id",
@@ -82,7 +82,7 @@ def run_transformation():
     for entity_name, key_col in entities.items():
         try:
             logger.info(f"--- Starting Silver Transformation: {entity_name} ---")
-            _process_entity(entity_name, key_col, config)
+            _process_entity(entity_name, key_col, pipeline_config)
         except Exception as e:
             logger.error(f"Critical failure transforming {entity_name}: {e}")
             raise

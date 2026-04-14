@@ -85,12 +85,7 @@ def write_batch(df: pd.DataFrame, output_path: str, first_batch: bool, schema) -
     write_deltalake(
         output_path,
         table,
-        mode="overwrite" if first_batch else "append",
-        configuration={
-            "delta.minReaderVersion": "1",
-            "delta.minWriterVersion": "2",
-            "delta.columnMapping.mode": "none"
-        },
+        mode="overwrite" if first_batch else "append"
     )
 
 def _normalize_to_schema(df: pd.DataFrame, schema: pa.Schema) -> pa.Table:

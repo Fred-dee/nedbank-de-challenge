@@ -4,16 +4,15 @@ import pwd
 import sys
 from pathlib import Path
 
-from pipeline.config_helper import PipelineConfig
+from pipeline.pipeline_config import PipelineConfig
 
 
-def initialize_output_directories(config: PipelineConfig | None = None) -> PipelineConfig:
+def initialize_output_directories(config: PipelineConfig):
     """
     Load pipeline config and ensure all configured output directories exist.
 
     This is intended to run once at startup before any pipeline stage writes files.
     """
-    config = config or PipelineConfig()
 
     bronze_output = config.get("output.bronze_path")
     silver_output = config.get("output.silver_path")
@@ -26,7 +25,6 @@ def initialize_output_directories(config: PipelineConfig | None = None) -> Pipel
             Path(path).mkdir(parents=True, exist_ok=True)
             print(f"Created output directory: {path}")
 
-    return config
 
 
 def setup_performance_logging():

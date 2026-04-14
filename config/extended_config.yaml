@@ -1,0 +1,13 @@
+batch_size:
+  bronze:
+    accounts: 10000
+    transactions: 50000
+    customers: 10000
+  silver:
+    accounts: 50000
+    transactions: 50000
+    customers: 50000
+  gold:
+    accounts: 10000
+    transactions: 50000
+    customers: 10000
