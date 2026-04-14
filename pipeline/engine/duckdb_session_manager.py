@@ -1,4 +1,7 @@
+import logging
 import duckdb
+
+log = logging.getLogger(__name__)
 
 
 class DuckDBSessionManager:
@@ -11,11 +14,11 @@ class DuckDBSessionManager:
         self.connection.close()
 
     def query(self, query: str):
-        print("running query: ", query)
+        log.debug("running query: %s", query)
         if not self.connection:
-            print("no connection")
+            log.warning("no connection")
         else:
-            print("connection exists")
+            log.debug("connection exists")
         return self.connection.execute(query)
 
     def get_connection(self):
