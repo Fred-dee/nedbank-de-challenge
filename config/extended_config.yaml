@@ -4,9 +4,9 @@ batch_size:
     transactions: 50000
     customers: 10000
   silver:
-    accounts: 50000
+    accounts: 10000
     transactions: 50000
-    customers: 50000
+    customers: 10000
   gold:
     accounts: 10000
     transactions: 50000

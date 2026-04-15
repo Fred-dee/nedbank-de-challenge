@@ -11,7 +11,6 @@ from pipeline.gold.provision_helper import (
     write_batch,
 )
 from pipeline.schemas.dim_accounts_schema import dim_accounts_schema
-from pipeline.silver.transform_accounts import transform_accounts
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +64,6 @@ def build_dim_accounts(silver_root, gold_root, batch_size: int = 10000):
             raise ValueError(f"Silver accounts table missing required columns: {missing}")
 
         batch_df = ensure_string_columns(batch_df, ["account_id", "customer_ref"])
-        batch_df = transform_accounts(batch_df)
 
         batch_df = batch_df.rename(columns={"customer_ref": "customer_id"})
         batch_df["account_sk"] = generate_sk(batch_df["account_id"])

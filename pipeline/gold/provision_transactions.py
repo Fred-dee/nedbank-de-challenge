@@ -10,7 +10,6 @@ from pipeline.gold.provision_helper import (
     write_batch,
 )
 from pipeline.schemas.fact_transactions_schema import fact_transactions_schema
-from pipeline.silver.transform_transactions import transform_transactions
 
 logger = logging.getLogger(__name__)
 

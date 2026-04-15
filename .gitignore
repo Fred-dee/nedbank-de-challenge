@@ -38,3 +38,6 @@ data/input/
 infrastructure/
 docs/
 AGENTS.MD
+./install-duckdb.sh
+./duckdb
+./duckdb_cli-linux-amd64.zip
